@@ -61,6 +61,17 @@ const _toHex = (int) => {
   return hex.length < 2 ? `0${hex}` : hex
 }
 
+const _getIpfs = () => {
+  return ipfsClient.create({
+    host: 'ipfs.infura.io',
+    port: 5001,
+    protocol: 'https',
+    headers: {
+      authorization: `Basic ${process.env.INFURA_PROJECT_ID}:${process.env.INFURA_PROJECT_SECRET}`
+    }
+  })
+}
+
 const generate = async () => {
   rimraf.sync(destination)
   mkdirp.sync(destination)
@@ -80,18 +91,7 @@ const generate = async () => {
 }
 
 const assets = async () => {
-  const authToken = [
-    process.env.INFURA_PROJECT_ID,
-    process.env.INFURA_PROJECT_SECRET
-  ].join(':')
-  const ipfs = ipfsClient.create({
-    host: 'ipfs.infura.io',
-    port: 5001,
-    protocol: 'https',
-    headers: {
-      authorization: `Basic ${authToken}`
-    }
-  })
+  const ipfs = _getIpfs()
   const files = fs.readdirSync(destination)
   const manifest = await Promise.reduce(files, async (manifest, file) => {
     const hex = path.basename(file, '.png')
@@ -110,18 +110,7 @@ const assets = async () => {
 }
 
 const html = async () => {
-  const authToken = [
-    process.env.INFURA_PROJECT_ID,
-    process.env.INFURA_PROJECT_SECRET
-  ].join(':')
-  const ipfs = ipfsClient.create({
-    host: 'ipfs.infura.io',
-    port: 5001,
-    protocol: 'https',
-    headers: {
-      authorization: `Basic ${authToken}`
-    }
-  })
+  const ipfs = _getIpfs()
   const data = fs.readFileSync(path.join(destination, 'manifest.json'))
   const nfts = JSON.parse(data)
   const template = fs.readFileSync(path.join(__dirname, 'nfts.html.ejs'), 'utf8')
