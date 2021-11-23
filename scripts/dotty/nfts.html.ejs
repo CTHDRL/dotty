@@ -1,15 +1,18 @@
 <style>
   .nft {
-    width: 100px;
-    width: 100px;
     float: left;
     margin: 5px;
+    border: 3px solid #000;
   }
-  .nft img {
+  .nft-image {
     background: #EEE;
+    width: 100px;
+    height: 100px;
+  }
+  .nft-image img {
     width: 100%;
   }
-  .nft-color {
+  .nft-caption {
     background: #000;
     color: #FFF;
     text-align: center;
@@ -18,8 +21,10 @@
 </style>
 <% nfts.map(nft => { %>
   <div class="nft">
-    <img src="https://ipfs.infura.io/ipfs/<%= nft.path %>" />
-    <div class="nft-color">
+    <div class="nft-image">
+      <img src="<%= nft.image %>" />
+    </div>
+    <div class="nft-caption">
       #<%= nft.hex.toUpperCase() %>
     </div>
   </div>

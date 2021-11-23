@@ -5,7 +5,9 @@ const dotenv = require('dotenv')
 const rimraf = require('rimraf')
 const mkdirp = require('mkdirp')
 const chalk = require('chalk')
+const btoa = require('btoa')
 const path = require('path')
+const _ = require('lodash')
 const ejs = require('ejs')
 const fs = require('fs')
 
@@ -16,23 +18,18 @@ const width = 1000
 const height = 1000
 const steps = 20
 const buffer = 10
+const delta = 50
 
 const _drawRect = (context, hex) => {
   context.fillStyle = `#${hex}`
   context.fillRect(0, 0, width, height)
 }
 
-const _drawCircle = (context, x, y, r, lw) => {
+const _drawCircle = (context, x, y, r) => {
   context.beginPath()
   context.arc(x, y, r, 0, Math.PI * 2)
-  context.lineWidth = lw
-  context.strokeStyle = 'rgba(255,255,255, .25)'
   context.fillStyle = 'rgba(255,255,255, .5)'
-  context.save()
-  context.clip()
   context.fill()
-  context.stroke()
-  context.restore()
 }
 
 const _generate = (hex) => {
@@ -48,7 +45,7 @@ const _generate = (hex) => {
     Array(steps).fill(0).map((j, h) => {
       if(Math.round(Math.random()) === 0) return
       const r = width / (steps * 2)
-      _drawCircle(context, r + (r * 2 * w), r + (r * 2 * h), r - (buffer / 2), 10, hex)
+      _drawCircle(context, r + (r * 2 * w), r + (r * 2 * h), r - (buffer / 2))
     })
   })
 
@@ -58,28 +55,84 @@ const _generate = (hex) => {
 
 const _toHex = (int) => {
   const hex = int.toString(16)
-  return hex.length < 2 ? `0${hex}` : hex
+  return _.padStart(hex, 2, 0)
+}
+
+const _toHexID = (hex) => {
+  return _.padStart(hex, 64, 0)
 }
 
 const _getIpfs = () => {
+  const token = btoa(`${process.env.INFURA_PROJECT_ID}:${process.env.INFURA_PROJECT_SECRET}`)
   return ipfsClient.create({
     host: 'ipfs.infura.io',
     port: 5001,
     protocol: 'https',
     headers: {
-      authorization: `Basic ${process.env.INFURA_PROJECT_ID}:${process.env.INFURA_PROJECT_SECRET}`
+      authorization: `Basic ${token}`
     }
   })
+}
+
+const _publishData = async (ipfs, manifest, ext) => {
+  let hash = null
+  let keys = []
+  for await (const file of ipfs.addAll(manifest, { wrapWithDirectory: true })) {
+    if(file.path === '') hash = file.cid.toString()
+    if(path.extname(file.path) === ext) keys.push(file.path)
+  }
+  return keys.map(key => {
+    const uri = `https://ipfs.infura.io/ipfs/${hash}/${key}`
+    console.log(`Publishing ${uri}`)
+    return uri
+  })
+}
+
+const _publishImages = async (ipfs, files) => {
+  const manifest = await Promise.reduce(files, async (manifest, file) => {
+    const hex = path.basename(file, '.png')
+    const hexID = _toHexID(hex)
+    const content = fs.readFileSync(path.join(destination, file))
+    return [
+      ...manifest,
+      {
+        path: `images/${hexID}.png`,
+        content
+      }
+    ]
+  }, [])
+  return await _publishData(ipfs, manifest, '.png')
+}
+
+const _publishMetadata = async (ipfs, images) => {
+  const manifest = await Promise.reduce(images, async (manifest, image) => {
+    const hexID = path.basename(image, '.png')
+    const hex = _.padStart(parseInt(hexID, 16).toString(16), 0, 6)
+    return [
+      ...manifest,
+      {
+        path: `metadata/${hexID}.json`,
+        content: JSON.stringify({
+          name: hex.toUpperCase(),
+          description: `A dotty based on #${hex}`,
+          image,
+          properties: {
+            color: `#${hex}`
+          }
+        })
+      }
+    ]
+  }, [])
+  return await _publishData(ipfs, manifest, '.json')
 }
 
 const generate = async () => {
   rimraf.sync(destination)
   mkdirp.sync(destination)
-  const delta = 50
   const steps = Math.floor(255 / delta)
-  Array(steps).fill(0).map((i, r) => {
+  Array(steps).fill(0).map((i, b) => {
     Array(steps).fill(0).map((j, g) => {
-      Array(steps).fill(0).map((k, b) => {
+      Array(steps).fill(0).map((k, r) => {
         const red = _toHex(r * delta)
         const green = _toHex(g * delta)
         const blue = _toHex(b * delta)
@@ -92,27 +145,24 @@ const generate = async () => {
 
 const assets = async () => {
   const ipfs = _getIpfs()
-  const files = fs.readdirSync(destination)
-  const manifest = await Promise.reduce(files, async (manifest, file) => {
-    const hex = path.basename(file, '.png')
-    const data = fs.readFileSync(path.join(destination, file))
-    const address = await ipfs.add(data)
-    console.log(chalk.hex(hex)(`Publishing ${hex}: https://ipfs.infura.io/ipfs/${address.path}`))
-    return [
-      ...manifest,
-      {
-        hex,
-        path: address.path
-      }
-    ]
-  }, [])
-  fs.writeFileSync(path.join(destination, 'manifest.json'), JSON.stringify(manifest))
+  const files = fs.readdirSync(destination).sort((afile,bfile) => {
+    const adec = parseInt(path.basename(afile, '.png'), 16)
+    const bdec = parseInt(path.basename(bfile, '.png'), 16)
+    return adec <= bdec ? -1 : 1
+  })
+  const images = await _publishImages(ipfs, files)
+  const metadata = await _publishMetadata(ipfs, images)
+
+  fs.writeFileSync(path.join(destination, 'manifest.json'), JSON.stringify(images))
 }
 
 const html = async () => {
   const ipfs = _getIpfs()
   const data = fs.readFileSync(path.join(destination, 'manifest.json'))
-  const nfts = JSON.parse(data)
+  const nfts = JSON.parse(data).map(uri => ({
+    hex: _.padStart(parseInt(path.basename(uri, '.png'), 16).toString(16), 6, 0),
+    image: uri
+  }))
   const template = fs.readFileSync(path.join(__dirname, 'nfts.html.ejs'), 'utf8')
   const html = ejs.render(template, { nfts })
   const address = await ipfs.add(html)
