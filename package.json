@@ -13,9 +13,7 @@
     "rimraf": "^3.0.2"
   },
   "scripts": {
-    "generate": "node ./scripts/generate.js",
-    "publish": "node ./scripts/publish.js",
-    "view": "node ./scripts/view.js",
+    "dotty": "node ./scripts/dotty/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
