@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Dotties is ERC1155, Ownable {
 
-    constructor() public ERC1155("https://ipfs.infura.io/ipfs/QmRuYB7AEwNLmE9N3hyLrntmrwHffEh2QYWNbDS6BPRWDX/metadata/{1}.json") {}
+    constructor() public ERC1155("https://ipfs.infura.io/ipfs/Qmc4Ue8EQwcioWRNDdmzovwPvLuqhwgWxxBinemBroCjEg/metadata/{1}.json") {}
 
     function myMintFunc(uint256[] memory ids, uint256[] memory amounts, bytes memory data) public onlyOwner {
       _mintBatch(msg.sender, ids, amounts, data);

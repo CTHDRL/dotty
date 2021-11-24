@@ -8,13 +8,13 @@ describe("Dotties", function () {
     const dotties = await Dotties.deploy()
     await dotties.deployed()
     const steps = Math.floor(255 / 50)
-    const ids = Array(steps).fill(0).reduce((ids, i, b) => [
+    const ids = Array(steps).fill(0).reduce((ids, i, r) => [
       ...ids,
       ...Array(steps).fill(0).reduce((ids2, j, g) => [
         ...ids2,
-        ...Array(steps).fill(0).reduce((ids3, k, r) => [
+        ...Array(steps).fill(0).reduce((ids3, k, b) => [
           ...ids3,
-          (256 * 256 * 50 * b) + (256 * 50 * g) + r * 50
+          (256 * 256 * 50 * r) + (256 * 50 * g) + (50 * b)
         ], [])
       ], [])
     ], [])
