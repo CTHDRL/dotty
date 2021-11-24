@@ -1,0 +1,43 @@
+<style>
+  .nft {
+    float: left;
+    margin: 5px;
+    border: 3px solid #000;
+  }
+  .nft-image {
+    background: #EEEEEE;
+    width: 180px;
+    height: 180px;
+  }
+  .nft-image img {
+    width: 100%;
+  }
+  .nft-caption {
+    background: #000000;
+    color: #FFFFFF;
+    padding: 5px;
+    font-family: Arial;
+    font-size: 10px;
+    line-height: 1.6;
+  }
+</style>
+<% nfts.map(nft => { %>
+  <div class="nft">
+    <div class="nft-image">
+      <img src="<%= nft.metadata.image %>" />
+    </div>
+    <div class="nft-caption">
+      <div class="nft-caption-item">
+        NAME: <%= nft.metadata.name %>
+      </div>
+      <div class="nft-caption-item">
+        DESCRIPTION: <%= nft.metadata.description %>
+      </div>
+      <% nft.metadata.attributes.map(attribute => { %>
+        <div class="nft-caption-item">
+          <%= attribute.trait_type.toUpperCase() %>: <%= attribute.display_type === 'date' ? moment(attribute.value, 'X').format('MM/DD/YY') : attribute.value %>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+<% }) %>

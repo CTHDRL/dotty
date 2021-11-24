@@ -1,25 +1,38 @@
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
-const _ = require('lodash')
+const chaiAsPromised = require('chai-as-promised')
+const Dotties = artifacts.require('./Dotties.sol')
+const Promise = require('bluebird')
+const chai = require('chai')
 
-describe("Dotties", function () {
-  it("Mint the tokens", async function () {
-    const Dotties = await ethers.getContractFactory("Dotties")
-    const dotties = await Dotties.deploy()
-    await dotties.deployed()
-    const steps = Math.floor(255 / 50)
-    const ids = Array(steps).fill(0).reduce((ids, i, r) => [
-      ...ids,
-      ...Array(steps).fill(0).reduce((ids2, j, g) => [
-        ...ids2,
-        ...Array(steps).fill(0).reduce((ids3, k, b) => [
-          ...ids3,
-          (256 * 256 * 50 * r) + (256 * 50 * g) + (50 * b)
-        ], [])
-      ], [])
-    ], [])
-    await dotties.myMintFunc(ids, ids.map(i => 1), '0x00')
-    const [owner] = await ethers.getSigners()
-    console.log(await dotties.balanceOf(owner.address,100))
+chai.use(chaiAsPromised).should()
+
+contract('Dotties', (accounts) => {
+
+  const adminAccount = accounts[0]
+  const user1Account = accounts[1]
+  const user2Account = accounts[2]
+  const user3Account = accounts[3]
+  const user4Account = accounts[4]
+
+  beforeEach(async() => {
+    dotties = await Dotties.deployed()
   })
+
+  it("should mint all NFTs", async function () {
+    console.log(await dotties.uri(0))
+    const ids = Array(125).fill(0).map((i, j) => j)
+    await Promise.mapSeries(ids, async (id) => {
+      const adminBalance = await dotties.balanceOf(adminAccount, id)
+      assert.equal(adminBalance.toNumber(), 1, `it allocates dotty ${id}`)
+    })
+  })
+
+  it("should allow buying of NFTs", async function () {
+    await dotties.safeTransferFrom(adminAccount, user1Account, 0, 1, "0x0")
+    const adminBalance = await dotties.balanceOf(adminAccount, 0)
+    assert.equal(adminBalance.toNumber(), 0, `it removes the nft to the admins account`)
+    const user1Balance = await dotties.balanceOf(user1Account, 0)
+    assert.equal(user1Balance.toNumber(), 1, `it adds the nft to the users account`)
+  })
+
+
 })
