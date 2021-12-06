@@ -2,6 +2,7 @@
   "name": "dotties",
   "dependencies": {
     "@openzeppelin/contracts": "^4.3.3",
+    "@truffle/hdwallet-provider": "^1.7.0",
     "bluebird": "^3.7.2",
     "btoa": "^1.2.1",
     "canvas": "^2.8.0",

@@ -20,6 +20,9 @@
     font-size: 10px;
     line-height: 1.6;
   }
+  .nft-caption a {
+    color: #FFFFFF;
+  }
 </style>
 <% nfts.map(nft => { %>
   <div class="nft">
@@ -33,11 +36,17 @@
       <div class="nft-caption-item">
         DESCRIPTION: <%= nft.metadata.description %>
       </div>
+      <div class="nft-caption-item">
+        CREATED: <%= moment(nft.metadata.date, 'X').format('MM/DD/YY') %>
+      </div>
       <% nft.metadata.attributes.map(attribute => { %>
         <div class="nft-caption-item">
-          <%= attribute.trait_type.toUpperCase() %>: <%= attribute.display_type === 'date' ? moment(attribute.value, 'X').format('MM/DD/YY') : attribute.value %>
+          <%= attribute.trait_type.toUpperCase() %>: <%= attribute.value %>
         </div>
       <% }) %>
+      <div class="nft-caption-item">
+        <a href="<%= nft.metadataUrl %>">view metadata</a>
+      </div>
     </div>
   </div>
 <% }) %>

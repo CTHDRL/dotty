@@ -3,11 +3,12 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Dotties is ERC1155, Ownable {
+contract Dotties is ERC1155 {
 
-    constructor() ERC1155("https://ipfs.infura.io/ipfs/Qmc4Ue8EQwcioWRNDdmzovwPvLuqhwgWxxBinemBroCjEg/metadata/{1}.json") {
+    string public name = 'Dotties';
+
+    constructor() ERC1155("https://ipfs.infura.io/ipfs/Qmb4Hc6VDzM5GmR72yy96ij4wKH8CH23dSPx93iGWkWa1Y/{id}.json") {
       uint[] memory ids = new uint[](125);
       uint[] memory amounts = new uint[](125);
       for(uint i = 0; i < 125; i++) {

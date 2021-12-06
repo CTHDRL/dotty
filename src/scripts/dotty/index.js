@@ -37,23 +37,16 @@ const _generate = (hex, index) => {
       context.fill()
     })
   })
-  fs.writeFileSync(path.join(destination, `${index}.png`), canvas.toBuffer('image/png'))
-  fs.writeFileSync(path.join(destination, `${index}.json`), JSON.stringify({
+  fs.writeFileSync(path.join(destination, 'images', `${index}.png`), canvas.toBuffer('image/png'))
+  fs.writeFileSync(path.join(destination, 'json', `${index}.json`), JSON.stringify({
     name: `Dotty ${index}`,
     description: `A colorized dotty`,
+    edition: 1,
+    date: moment().format('X'),
     attributes: [
-      {
-        trait_type: 'Index',
-        value: index
-      },
       {
         trait_type: 'Color',
         value: `#${hex}`
-      },
-      {
-        display_type: 'date',
-        trait_type: 'Birthday',
-        value: moment().format('X')
       }
     ]
   }))
@@ -85,7 +78,8 @@ const _publishData = async (ipfs, manifest, ext) => {
 
 const generate = async () => {
   rimraf.sync(destination)
-  mkdirp.sync(destination)
+  mkdirp.sync(path.join(destination, 'images'))
+  mkdirp.sync(path.join(destination, 'json'))
   const steps = Math.floor(256 / delta)
   Array(steps).fill(0).map((i, r) => {
     Array(steps).fill(0).map((j, g) => {
@@ -108,9 +102,7 @@ const publish = async () => {
       authorization: `Basic ${token}`
     }
   })
-  const files = fs.readdirSync(destination).filter(file => {
-    return path.extname(file) === '.png'
-  })
+  const files = fs.readdirSync(path.join(destination, 'images'))
   const manifest = await Promise.reduce(files, async (manifest, file) => {
     const basename = path.basename(file, '.png')
     const id = parseInt(basename)
@@ -118,8 +110,8 @@ const publish = async () => {
       ...manifest,
       [id]: {
         address: _toAddress(id),
-        content: fs.readFileSync(path.join(destination, `${basename}.png`)),
-        metadata: JSON.parse(fs.readFileSync(path.join(destination, `${basename}.json`), 'utf8'))
+        content: fs.readFileSync(path.join(destination, 'images', `${basename}.png`)),
+        metadata: JSON.parse(fs.readFileSync(path.join(destination, 'json', `${basename}.json`), 'utf8'))
       }
     }
   }, {})
